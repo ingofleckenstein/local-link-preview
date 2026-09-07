@@ -1,6 +1,22 @@
 # Local Link Preview für HumHub
 
-Datenschutzfreundliche Linkvorschauen für HumHub 1.18.x. Das Modul erkennt Links bereits beim Schreiben und zeigt die Vorschau auch unter veröffentlichten Beiträgen an.
+**Dieses Modul wird in HumHub installiert.** Es erzeugt Linkvorschauen beim Schreiben und unter veröffentlichten Beiträgen. Metadaten und Bilder ruft der HumHub-Server ab; Vorschaubilder werden lokal zwischengespeichert. PeerTube und die beiden PeerTube-Projekte werden dafür nicht benötigt.
+
+## Referenzumgebung und Versionen
+
+Stand: 7. September 2026. HumHub **Community Edition 1.18.5** ist in der Betriebsdokumentation und im lokalen Core bestätigt. PeerTube **8.2.4** wurde am selben Tag über die öffentliche Server-API `/api/v1/config` der bestehenden Installation geprüft. Diese Angaben beschreiben die Referenzumgebung, keine vollständige Kompatibilitätsprüfung sämtlicher Funktionen.
+
+Modulversion: **0.0.4**. Laut `module.json`: HumHub mindestens **1.18.0**, höchstens **1.18.\***. Die PeerTube-Version ist für dieses Modul keine Voraussetzung.
+
+## Nutzung durch andere Communities
+
+Im geprüften Quellcode wurden keine festen Bindungen an Selbstsein-Domains, bestimmte Konten oder Serverpfade gefunden. Cache, Bildgröße, Kartenanzahl und gesperrte Domains lassen sich administrativ konfigurieren. Damit ist das Modul technisch auch für andere HumHub-1.18-Installationen geeignet; die Oberfläche ist derzeit deutsch. Die Lizenz ist [MIT](LICENSE). Vor produktiver Übernahme sollten Vorschauerstellung, Berechtigungen und Bildauslieferung auf der eigenen Installation geprüft werden.
+
+## Verhältnis zum Marketplace-Modul LinkPreview
+
+Die Prüfung am 7. September 2026 fand keine Hinweise auf eine Fork-Abstammung im lokalen Code oder in den Metadaten. Dieses Projekt verwendet die Modul-ID `local-link-preview`, den Namespace `humhub\modules\localLinkPreview` und eine eigene MIT-Lizenzdatei. Das neu angelegte Git-Repository enthält allerdings nur den Import des vorhandenen Ordners und keine frühere Entwicklungsgeschichte; daraus lässt sich die ursprüngliche Codeherkunft nicht beweisen.
+
+Das [Marketplace-Angebot LinkPreview](https://marketplace.humhub.com/checkout/new-customer?id=linkpreview) stammt von HumHub GmbH & Co. KG. Der dort verlinkte [GitHub-Auftritt](https://github.com/humhub/linkpreview-issues) ist lediglich ein Issue-Tracker und enthält keinen Modulquellcode für einen Vergleich. Ergebnis: **keine belegte Fork-Beziehung; eine unabhängige Neuentwicklung ist damit ebenfalls nicht abschließend nachgewiesen**. Ähnliche Funktionen allein belegen keine gemeinsame Codeherkunft. Austauschbarkeit, Datenmigration und paralleler Betrieb mit dem Marketplace-Modul wurden nicht geprüft.
 
 ## Datenschutz und Sicherheit
 
