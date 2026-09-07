@@ -1,0 +1,12 @@
+{
+  "id": "local-link-preview",
+  "version": "0.0.4",
+  "name": "Local Link Preview",
+  "description": "Datenschutzfreundliche Linkvorschauen mit lokal zwischengespeicherten Bildern.",
+  "humhub": {
+    "minVersion": "1.18.0",
+    "maxVersion": "1.18.*"
+  },
+  "keywords": ["link", "preview", "privacy", "local"],
+  "licence": "MIT"
+}
