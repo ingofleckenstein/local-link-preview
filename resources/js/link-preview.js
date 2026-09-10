@@ -133,10 +133,18 @@
     }
 
     function postId(container) {
-        const root = container.closest('[data-content-key], [id^="wallEntry_"]');
-        if (!root) return 0;
-        const match = (root.dataset.contentKey || root.id || '').match(/(?:post[-_]|wallEntry_)(\d+)/i);
+        const post = container.querySelector('[data-ui-widget="post.Post"][id^="post-content-"]');
+        const match = post && post.id.match(/^post-content-(\d+)$/);
         return match ? match[1] : 0;
+    }
+
+    function isPostComposerEditor(editor) {
+        return editor.matches('[contenteditable="true"]')
+            && !!editor.closest('#contentForm_message, #contentForm_messageModal');
+    }
+
+    function isPostStreamContent(container) {
+        return !!container.querySelector('[data-ui-widget="post.Post"][id^="post-content-"]');
     }
 
     function hideStandalone(anchor) {
@@ -170,8 +178,8 @@
 
     function scan(root) {
         const editors = [], posts = [];
-        if (root.matches && root.matches('[contenteditable="true"], textarea')) editors.push(root);
-        if (root.querySelectorAll) editors.push(...root.querySelectorAll('[contenteditable="true"], textarea'));
+        if (root.matches && isPostComposerEditor(root)) editors.push(root);
+        if (root.querySelectorAll) editors.push(...Array.from(root.querySelectorAll('[contenteditable="true"]')).filter(isPostComposerEditor));
         editors.forEach(editor => {
             if (editor.dataset.llpBound) return;
             editor.dataset.llpBound = '1';
@@ -179,8 +187,8 @@
             editor.addEventListener('paste', () => setTimeout(() => scheduleEditor(editor), 0));
             scheduleEditor(editor);
         });
-        if (root.matches && root.matches('.wall-entry-content')) posts.push(root);
-        if (root.querySelectorAll) posts.push(...root.querySelectorAll('.wall-entry-content'));
+        if (root.matches && root.matches('.wall-entry-content') && isPostStreamContent(root)) posts.push(root);
+        if (root.querySelectorAll) posts.push(...Array.from(root.querySelectorAll('.wall-entry-content')).filter(isPostStreamContent));
         posts.forEach(enhancePost);
     }
 

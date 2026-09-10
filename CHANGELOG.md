@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.5 – 2026-09-10
+
+- Linkvorschauen werden nur noch im Eingabefeld für neue Beiträge sowie unter veröffentlichten HumHub-Posts im Stream erzeugt. Rich-Text-Felder und Stream-Inhalte anderer Apps bleiben unberührt.
+
 ## 0.0.4 – 2026-09-05
 
 - Leere Editoren erzeugen beim Laden keine versteckten Linkvorschau-Felder mehr. Falls nach einer echten URL-Eingabe interne Felder benötigt werden, sind sie zusätzlich von HumHubs Formularzustandsprüfung ausgeschlossen.
