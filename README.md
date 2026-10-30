@@ -6,7 +6,7 @@
 
 Stand: 7. September 2026. HumHub **Community Edition 1.18.5** ist in der Betriebsdokumentation und im lokalen Core bestätigt. PeerTube **8.2.4** wurde am selben Tag über die öffentliche Server-API `/api/v1/config` der bestehenden Installation geprüft. Diese Angaben beschreiben die Referenzumgebung, keine vollständige Kompatibilitätsprüfung sämtlicher Funktionen.
 
-Modulversion: **0.0.4**. Laut `module.json`: HumHub mindestens **1.18.0**, höchstens **1.18.\***. Die PeerTube-Version ist für dieses Modul keine Voraussetzung.
+Modulversion: **0.0.6** (Funktionsupdate: 30. Oktober 2026). Laut `module.json`: HumHub mindestens **1.18.0**, höchstens **1.18.\***. Die PeerTube-Version ist für dieses Modul keine Voraussetzung.
 
 ## Nutzung durch andere Communities
 
@@ -40,7 +40,26 @@ Voraussetzungen: HumHub 1.18.x, PHP 8.2+, PHP-Erweiterungen cURL, DOM, mbstring 
 
 ## Verhalten
 
-Das Modul erkennt HTTP(S)-Links während des Schreibens. Bei mehreren Links kann der gewünschte Vorschau-Link ausgewählt werden. Eine Vorschau kann entfernt und ihr Bild ausgeblendet werden. Alleinstehende URLs werden nach erfolgreicher Kartendarstellung ausgeblendet. Ohne geeignete Metadaten erscheint eine kompakte Textkarte.
+Das Modul erkennt HTTP(S)-Links während des Schreibens. Interne Profil-Links und Erwähnungen (`/u/…` und `user/profile`, auch als Query-Route) erzeugen keine Vorschau und werden nicht abgerufen. Bei mehreren geeigneten Links lässt sich der Vorschau-Link auswählen.
+
+Externe Vorschauen verwenden verfügbare Open-Graph-, Twitter- oder image_src-Bilder. Alternative Bildadressen werden bei Fehlern ebenfalls geprüft und Bilder lokal gespeichert. Ohne Bild bleibt eine Textkarte; bei fehlgeschlagenem Seitenabruf bleibt der ursprüngliche Link. Original-Links werden nicht ausgeblendet.
+
+**Ausschalten:**
+
+- „Linkvorschauen anzeigen“ schaltet Vorschauen persönlich aus bzw. ein. Die Einstellung wird serverseitig gespeichert und verhindert bei ausgeschalteter Anzeige weitere Vorschauabrufe.
+- „Vorschau entfernen“ beim Schreiben gilt für den einzelnen Beitrag, bereits während des Ladens. Das bleibt auch beim Hinzufügen weiterer Links erhalten, bis die Vorschau ausdrücklich aktiviert wird.
+- Veröffentlichte Vorschauen können Leser persönlich ausblenden und wieder anzeigen; diese einzelne Auswahl wird pro Nutzer im aktuellen Browser gespeichert.
+- Personen mit Bearbeitungsrecht können die Vorschau für alle entfernen oder wieder aktivieren. Textänderungen ohne Vorschaufeld heben diese Entscheidung nicht auf.
+- Administratoren können das Modul weiterhin insgesamt ausschalten.
+
+Bildvorschauen lassen sich beim Schreiben separat ausblenden. Abruf gespeicherter Beitragseinstellungen erfordert Leserecht; Änderungen erfordern Bearbeitungsrecht, POST und CSRF. Cacheleeren ist auf POST beschränkt.
+
+## Prüfungen
+
+- `php tests/policy.php`: Profilfilter, Metadaten, alternative Bilder und URL-Schutz (PHP DOM/mbstring).
+- `node tests/policy.test.cjs`: clientseitige Profilausschlüsse und URL-Erkennung.
+- `node tests/browser.cjs`: Bedienprüfung in separat gestarteter Chromium-Testinstanz auf Debug-Port 9241; lokale Testdaten und simulierte Vorschauantworten.
+- `php tests/runtime.php /pfad/zur/testinstallation`: echte HumHub-Rechte, Abschaltung und Bearbeiten mit vorhandenen Testkonten. Auswahländerungen werden zurückgerollt, persönliche Einstellungen wiederhergestellt. Optional prüft `PREVIEW_TEST_URL` den echten Abruf einer öffentlichen Webseite samt lokalem Bild. Nur auf der Testinstallation ausführen.
 
 Unter **Administration → Module → Local Link Preview → Konfigurieren** lassen sich Cache-Dauer, maximale Bildgröße, Anzahl der Karten und gesperrte Domains verwalten.
 

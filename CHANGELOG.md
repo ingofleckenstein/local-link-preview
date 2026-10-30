@@ -27,3 +27,10 @@
 - Vorschaukarten unter veröffentlichten Beiträgen
 - Lokaler Bildcache und serverseitiger Proxy
 - Schutz vor SSRF, Redirect-Missbrauch und übergroßen Antworten
+
+## 0.0.6
+- Interne Profile und Erwähnungen erhalten keine Linkkarten.
+- Externe Vorschaubilder: Open Graph, Twitter und image_src mit lokalem Bildcache, alternativen Bildquellen und komprimierten Antworten.
+- Persönliche Abschaltung, einzelne Vorschauen ausblenden sowie dauerhaftes Entfernen für bearbeitbare Beiträge. Abschaltung bleibt bei Textänderungen erhalten.
+- Abschaltknopf bereits während des Ladens; keine leeren Ersatzkarten und keine versteckten Original-Links.
+- Beitragsrechte beim Lesen gespeicherter Vorschauauswahlen und beim Ändern geprüft; Cacheleeren nur per POST.

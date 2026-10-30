@@ -9,6 +9,16 @@ use Yii;
 
 class AdminController extends Controller
 {
+    public function behaviors(): array
+    {
+        return array_merge(parent::behaviors(), [
+            'verbs' => [
+                'class' => \yii\filters\VerbFilter::class,
+                'actions' => ['clear-cache' => ['POST']],
+            ],
+        ]);
+    }
+
     public function actionIndex()
     {
         $settings = $this->module->settings;

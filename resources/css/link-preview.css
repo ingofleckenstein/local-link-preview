@@ -90,3 +90,7 @@
     .llp-card__description { display: none; }
     .llp-card__external { top: 10px; right: 12px; }
 }
+.llp-preferences { display: flex; align-items: center; gap: .45rem; margin: .5rem 0; font-size: .8rem; font-weight: normal; color: var(--bs-secondary-color, #667085); cursor: pointer; }
+.llp-preferences input { margin: 0; }
+.llp-post-controls .btn { padding: .2rem .4rem; box-shadow: none; font-size: .75rem; min-height: 32px; }
+.llp-post-cards[hidden] { display: none !important; }

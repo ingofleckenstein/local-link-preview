@@ -12,12 +12,12 @@ use yii\helpers\FileHelper;
 class PreviewFetcher
 {
     private const MAX_HTML_BYTES = 2097152;
-    private const USER_AGENT = 'HumHub LocalLinkPreview/0.0.3';
+    private const USER_AGENT = 'HumHub LocalLinkPreview/0.0.6';
 
     public function get(string $url): LinkPreview
     {
         $url = $this->normaliseUrl($url);
-        $hash = hash('sha256', $url);
+        $hash = hash('sha256', '0.0.6:' . $url);
         $cached = LinkPreview::findOne(['url_hash' => $hash]);
         $cacheTtl = max(1, (int) Yii::$app->getModule('local-link-preview')->settings->get('cacheDays', 7)) * 86400;
         if ($cached && $cached->fetched_at >= time() - $cacheTtl) {
@@ -33,17 +33,22 @@ class PreviewFetcher
         $model->site_name = $meta['siteName'];
         $model->fetched_at = time();
 
-        if ($meta['image']) {
+        $model->image_file = null;
+        $model->image_mime = null;
+        foreach ($meta['images'] as $imageUrl) {
             try {
                 $imageLimit = max(1, (int) Yii::$app->getModule('local-link-preview')->settings->get('maxImageMb', 5)) * 1048576;
-                [$image, , $mime] = $this->request($meta['image'], $imageLimit, ['image/jpeg', 'image/png', 'image/gif', 'image/webp']);
+                [$image, , $mime] = $this->request($imageUrl, $imageLimit, ['image/jpeg', 'image/png', 'image/gif', 'image/webp']);
                 $extension = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/gif' => 'gif', 'image/webp' => 'webp'][$mime] ?? null;
                 if ($extension && @getimagesizefromstring($image) !== false) {
                     FileHelper::createDirectory(self::imageDirectory(), 0750, true);
                     $filename = $hash . '.' . $extension;
-                    file_put_contents(self::imageDirectory() . DIRECTORY_SEPARATOR . $filename, $image, LOCK_EX);
+                    if (file_put_contents(self::imageDirectory() . DIRECTORY_SEPARATOR . $filename, $image, LOCK_EX) === false) {
+                        throw new RuntimeException('Vorschaubild konnte nicht gespeichert werden.');
+                    }
                     $model->image_file = $filename;
                     $model->image_mime = $mime;
+                    break;
                 }
             } catch (\Throwable $e) {
                 Yii::warning('Vorschaubild konnte nicht lokal gespeichert werden: ' . $e->getMessage(), 'local-link-preview');
@@ -69,7 +74,7 @@ class PreviewFetcher
         $url = $this->normaliseUrl($url);
         $parts = parse_url($url);
         $ips = $this->publicIps($parts['host']);
-        $port = ($parts['scheme'] === 'https') ? 443 : 80;
+        $port = $parts['port'] ?? ((strtolower($parts['scheme']) === 'https') ? 443 : 80);
         $headers = [];
         $body = '';
         $ch = curl_init($url);
@@ -79,6 +84,8 @@ class PreviewFetcher
             CURLOPT_CONNECTTIMEOUT => 5,
             CURLOPT_TIMEOUT => 10,
             CURLOPT_USERAGENT => self::USER_AGENT,
+            CURLOPT_ACCEPT_ENCODING => '',
+            CURLOPT_PROXY => '',
             CURLOPT_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
             CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
             CURLOPT_RESOLVE => [$parts['host'] . ':' . $port . ':' . $ips[0]],
@@ -134,6 +141,9 @@ class PreviewFetcher
     private function normaliseUrl(string $url): string
     {
         $url = trim(html_entity_decode($url, ENT_QUOTES | ENT_HTML5));
+        if (PreviewPolicy::isInternalProfile($url)) {
+            throw new RuntimeException('Interne Profile erhalten keine Linkvorschau.');
+        }
         if (!filter_var($url, FILTER_VALIDATE_URL)) {
             throw new RuntimeException('Ungültige URL.');
         }
@@ -166,7 +176,9 @@ class PreviewFetcher
                 $query = '//meta[translate(@property,"ABCDEFGHIJKLMNOPQRSTUVWXYZ","abcdefghijklmnopqrstuvwxyz")="' . strtolower($name) . '" or translate(@name,"ABCDEFGHIJKLMNOPQRSTUVWXYZ","abcdefghijklmnopqrstuvwxyz")="' . strtolower($name) . '"]/@content';
                 $nodes = $xpath->query($query);
                 if ($nodes && $nodes->length) {
-                    return trim($nodes->item(0)->nodeValue);
+                    foreach ($nodes as $node) {
+                        if (trim($node->nodeValue) !== '') { return trim($node->nodeValue); }
+                    }
                 }
             }
             return null;
@@ -176,12 +188,19 @@ class PreviewFetcher
             $nodes = $xpath->query('//title');
             $title = $nodes && $nodes->length ? trim($nodes->item(0)->textContent) : parse_url($baseUrl, PHP_URL_HOST);
         }
-        $image = $meta(['og:image', 'twitter:image']);
+        $images = [];
+        foreach (['og:image:secure_url', 'og:image', 'og:image:url', 'twitter:image', 'twitter:image:src'] as $name) {
+            $candidate = $meta([$name]);
+            if ($candidate) { $images[] = $this->absoluteUrl($candidate, $baseUrl); }
+        }
+        foreach ($xpath->query('//link[contains(concat(" ", normalize-space(@rel), " "), " image_src ")]/@href') as $node) {
+            $images[] = $this->absoluteUrl($node->nodeValue, $baseUrl);
+        }
         return [
             'title' => $this->clean($title, 512),
             'description' => $this->clean($meta(['og:description', 'twitter:description', 'description']) ?: '', 500),
             'siteName' => $this->clean($meta(['og:site_name']) ?: parse_url($baseUrl, PHP_URL_HOST), 255),
-            'image' => $image ? $this->absoluteUrl($image, $baseUrl) : null,
+            'images' => array_slice(array_values(array_unique($images)), 0, 6),
         ];
     }
 
@@ -194,7 +213,7 @@ class PreviewFetcher
     private function absoluteUrl(string $candidate, string $base): string
     {
         $candidate = trim($candidate);
-        if (preg_match('~^https?://~i', $candidate)) {
+        if (preg_match('~^[a-z][a-z0-9+.-]*:~i', $candidate)) {
             return $candidate;
         }
         $baseParts = parse_url($base);
@@ -203,6 +222,12 @@ class PreviewFetcher
         }
         if (str_starts_with($candidate, '/')) {
             return $baseParts['scheme'] . '://' . $baseParts['host'] . (isset($baseParts['port']) ? ':' . $baseParts['port'] : '') . $candidate;
+        }
+        if (str_starts_with($candidate, '?')) {
+            return preg_replace('/[?#].*$/', '', $base) . $candidate;
+        }
+        if (str_starts_with($candidate, '#')) {
+            return preg_replace('/#.*$/', '', $base) . $candidate;
         }
         $path = $baseParts['path'] ?? '/';
         return $baseParts['scheme'] . '://' . $baseParts['host'] . (isset($baseParts['port']) ? ':' . $baseParts['port'] : '') . rtrim(dirname($path), '/\\') . '/' . $candidate;

@@ -5,6 +5,7 @@ namespace humhub\modules\localLinkPreview;
 use humhub\modules\localLinkPreview\assets\PreviewAsset;
 use humhub\modules\localLinkPreview\models\LinkPreviewSelection;
 use humhub\modules\post\models\Post;
+use humhub\modules\localLinkPreview\services\PreviewPolicy;
 use Yii;
 use yii\base\Event;
 use yii\helpers\Url;
@@ -23,6 +24,10 @@ class Events
         PreviewAsset::register($view);
         $config = [
             'endpoint' => Url::to(['/local-link-preview/preview/fetch']),
+            'preferenceEndpoint' => Url::to(['/local-link-preview/preview/preference']),
+            'selectionEndpoint' => Url::to(['/local-link-preview/preview/selection']),
+            'showPreviews' => (bool) $module->settings->user()->get('showPreviews', true),
+            'userId' => (int) Yii::$app->user->id,
             'enabled' => true,
             'maxPreviews' => (int) $module->settings->get('maxPreviews', 1),
             'csrfParam' => Yii::$app->request->csrfParam,
@@ -39,9 +44,16 @@ class Events
         if (!($event->sender instanceof Post) || Yii::$app->request->isConsoleRequest) {
             return;
         }
+        if (Yii::$app->request->post('localLinkPreviewUrl') === null) {
+            $existing = LinkPreviewSelection::findOne(['post_id' => $event->sender->id]);
+            if ($existing && $existing->url !== '' && !PreviewPolicy::appearsInMessage($existing->url, (string) $event->sender->message)) {
+                $existing->delete();
+            }
+            return;
+        }
         $url = trim((string) Yii::$app->request->post('localLinkPreviewUrl', ''));
         $disabled = $url === '__disabled__';
-        if (!$disabled && ($url === '' || !str_contains((string) $event->sender->message, $url))) {
+        if (!$disabled && ($url === '' || PreviewPolicy::isInternalProfile($url) || !PreviewPolicy::appearsInMessage($url, (string) $event->sender->message))) {
             LinkPreviewSelection::deleteAll(['post_id' => $event->sender->id]);
             return;
         }
