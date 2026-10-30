@@ -1,7 +1,7 @@
 <?php
 
-use humhub\libs\Html;
-use humhub\widgets\Button;
+use humhub\helpers\Html;
+use humhub\widgets\bootstrap\Button;
 use humhub\widgets\form\ActiveForm;
 
 /** @var \humhub\modules\localLinkPreview\models\SettingsForm $model */
