@@ -53,9 +53,6 @@
         if (isVerifiedPeerTubeVideo(data)) {
             const video = document.createElement('div'), frame = document.createElement('iframe');
             video.className = 'llp-video'; video.dataset.llpUrl = data.url;
-            if (typeof data.videoAspectRatio === 'number' && data.videoAspectRatio >= .2 && data.videoAspectRatio <= 4) {
-                video.style.setProperty('--llp-video-ratio', String(data.videoAspectRatio));
-            }
             frame.className = 'llp-video__frame'; frame.src = data.videoEmbedUrl;
             frame.title = data.title || 'PeerTube-Video'; frame.loading = 'lazy';
             frame.allow = 'fullscreen'; frame.allowFullscreen = true;
