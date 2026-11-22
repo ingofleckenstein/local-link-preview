@@ -1,6 +1,6 @@
 {
   "id": "local-link-preview",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "name": "Local Link Preview",
   "description": "Datenschutzfreundliche Linkvorschauen mit lokal zwischengespeicherten Bildern.",
   "humhub": {
