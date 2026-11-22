@@ -13,6 +13,20 @@ use yii\web\View;
 
 class Events
 {
+    public static function onAccountMenuInit(Event $event): void
+    {
+        if (Yii::$app->user->isGuest || !Yii::$app->getModule('local-link-preview')->settings->get('enabled', true)) {
+            return;
+        }
+        $event->sender->addEntry(new \humhub\modules\ui\menu\MenuLink([
+            'id' => 'account-settings-link-previews',
+            'label' => 'Linkvorschauen',
+            'icon' => 'link',
+            'url' => ['/local-link-preview/account/index'],
+            'sortOrder' => 112,
+            'isActive' => Yii::$app->controller->module->id === 'local-link-preview' && Yii::$app->controller->id === 'account',
+        ]));
+    }
     public static function onControllerBeforeAction(Event $event): void
     {
         $module = Yii::$app->getModule('local-link-preview');

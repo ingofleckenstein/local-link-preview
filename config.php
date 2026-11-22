@@ -9,6 +9,7 @@ return [
     'class' => 'humhub\\modules\\localLinkPreview\\Module',
     'namespace' => 'humhub\\modules\\localLinkPreview',
     'events' => [
+        ['class' => \humhub\modules\user\widgets\AccountMenu::class, 'event' => \humhub\modules\user\widgets\AccountMenu::EVENT_INIT, 'callback' => [Events::class, 'onAccountMenuInit']],
         [
             'class' => Controller::class,
             'event' => Controller::EVENT_BEFORE_ACTION,

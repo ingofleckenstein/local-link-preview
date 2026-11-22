@@ -68,3 +68,7 @@ if ($url = getenv('PREVIEW_TEST_URL')) {
     $model = (new PreviewFetcher())->get($url);
     checkPreview((bool) $model->image_file && is_file(PreviewFetcher::imageDirectory() . '/' . $model->image_file), 'external site image fetched and cached locally');
 }
+if ($url = getenv('PEERTUBE_TEST_VIDEO_URL')) {
+    $embed = (new PreviewFetcher())->getPeerTubeEmbed($url);
+    checkPreview(is_array($embed) && str_starts_with($embed['url'] ?? '', 'https://video.selbstsein.events/videos/embed/'), 'verified PeerTube video resolves to a fixed embed URL');
+}

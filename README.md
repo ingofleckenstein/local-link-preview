@@ -6,7 +6,7 @@
 
 Stand: 7. September 2026. HumHub **Community Edition 1.18.5** ist in der Betriebsdokumentation und im lokalen Core bestätigt. PeerTube **8.2.4** wurde am selben Tag über die öffentliche Server-API `/api/v1/config` der bestehenden Installation geprüft. Diese Angaben beschreiben die Referenzumgebung, keine vollständige Kompatibilitätsprüfung sämtlicher Funktionen.
 
-Modulversion: **0.0.6** (Funktionsupdate: 30. Oktober 2026). Laut `module.json`: HumHub mindestens **1.18.0**, höchstens **1.18.\***. Die PeerTube-Version ist für dieses Modul keine Voraussetzung.
+Modulversion: **0.0.9**. Laut `module.json`: HumHub mindestens **1.18.0**, höchstens **1.19.\***. Die PeerTube-Version ist für dieses Modul keine Voraussetzung.
 
 ## Nutzung durch andere Communities
 
@@ -46,7 +46,7 @@ Externe Vorschauen verwenden verfügbare Open-Graph-, Twitter- oder image_src-Bi
 
 **Ausschalten:**
 
-- „Linkvorschauen anzeigen“ schaltet Vorschauen persönlich aus bzw. ein. Die Einstellung wird serverseitig gespeichert und verhindert bei ausgeschalteter Anzeige weitere Vorschauabrufe.
+- Unter „Mein Konto → Linkvorschauen“ schaltet „Linkvorschauen anzeigen“ Vorschauen persönlich aus bzw. ein. Die Einstellung wird serverseitig gespeichert und verhindert bei ausgeschalteter Anzeige weitere Vorschauabrufe.
 - „Vorschau entfernen“ beim Schreiben gilt für den einzelnen Beitrag, bereits während des Ladens. Das bleibt auch beim Hinzufügen weiterer Links erhalten, bis die Vorschau ausdrücklich aktiviert wird.
 - Veröffentlichte Vorschauen können Leser persönlich ausblenden und wieder anzeigen; diese einzelne Auswahl wird pro Nutzer im aktuellen Browser gespeichert.
 - Personen mit Bearbeitungsrecht können die Vorschau für alle entfernen oder wieder aktivieren. Textänderungen ohne Vorschaufeld heben diese Entscheidung nicht auf.

@@ -62,7 +62,9 @@ class PreviewController extends Controller
         }
 
         try {
-            $model = (new PreviewFetcher())->get($url);
+            $fetcher = new PreviewFetcher();
+            $model = $fetcher->get($url);
+            $videoEmbed = $fetcher->getPeerTubeEmbed($model->url);
         } catch (Throwable $e) {
             Yii::warning('Linkvorschau fehlgeschlagen: ' . $e->getMessage(), 'local-link-preview');
             throw new BadRequestHttpException('Für diesen Link konnte keine Vorschau erstellt werden.');
@@ -77,6 +79,8 @@ class PreviewController extends Controller
                 : null,
             'hideImage' => isset($selection) && (bool) $selection->hide_image,
             'canEdit' => isset($post) && $post->content->canEdit(),
+            'videoEmbedUrl' => $videoEmbed['url'] ?? null,
+            'videoAspectRatio' => $videoEmbed['aspectRatio'] ?? null,
         ];
     }
 

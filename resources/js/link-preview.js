@@ -5,7 +5,6 @@
     window.localLinkPreviewInitialized = true;
     const cache = new Map();
     let showPreviews = config.showPreviews !== false;
-    let preferenceSaving = false;
     const storageKey = 'localLinkPreviewHidden:' + config.userId;
     let hiddenPosts;
     try { hiddenPosts = new Set(JSON.parse(localStorage.getItem(storageKey) || '[]')); } catch (_) { hiddenPosts = new Set(); }
@@ -47,7 +46,23 @@
         node.type = 'button'; node.className = 'btn btn-sm btn-default'; node.textContent = label;
         node.addEventListener('click', callback); return node;
     }
+    function isVerifiedPeerTubeVideo(data) {
+        return typeof data.videoEmbedUrl === 'string' && /^https:\/\/video\.selbstsein\.events\/videos\/embed\/[A-Za-z0-9_-]{6,128}$/.test(data.videoEmbedUrl);
+    }
     function card(data) {
+        if (isVerifiedPeerTubeVideo(data)) {
+            const video = document.createElement('div'), frame = document.createElement('iframe');
+            video.className = 'llp-video'; video.dataset.llpUrl = data.url;
+            if (typeof data.videoAspectRatio === 'number' && data.videoAspectRatio >= .2 && data.videoAspectRatio <= 4) {
+                video.style.setProperty('--llp-video-ratio', String(data.videoAspectRatio));
+            }
+            frame.className = 'llp-video__frame'; frame.src = data.videoEmbedUrl;
+            frame.title = data.title || 'PeerTube-Video'; frame.loading = 'lazy';
+            frame.allow = 'fullscreen'; frame.allowFullscreen = true;
+            frame.sandbox = 'allow-same-origin allow-scripts allow-popups allow-forms';
+            frame.referrerPolicy = 'strict-origin-when-cross-origin';
+            video.appendChild(frame); return video;
+        }
         const link = document.createElement('a');
         link.className = 'llp-card'; link.href = data.url; link.target = '_blank';
         link.rel = 'noopener noreferrer nofollow'; link.dataset.llpUrl = data.url;
@@ -79,7 +94,7 @@
         hiddenField(form, 'localLinkPreviewUrl').value = url || '';
     }
     function editorDisabled(editor) { return editor.closest('form')?.querySelector('input[name="localLinkPreviewUrl"]')?.value === '__disabled__'; }
-    function editorControls(editor, holder, urls, selected) {
+    function editorControls(editor, holder, urls, selected, video = false) {
         const bar = document.createElement('div'); bar.className = 'llp-controls';
         if (editorDisabled(editor)) {
             bar.appendChild(button('Vorschau aktivieren', () => {setSelected(editor, selected); renderEditor(editor, holder, urls, selected);})); return bar;
@@ -89,14 +104,17 @@
             urls.forEach((url, index) => {const option = document.createElement('option'); option.value = url; option.textContent = 'Link ' + (index + 1) + ': ' + new URL(url).hostname; option.selected = url === selected; select.appendChild(option);});
             select.addEventListener('change', () => renderEditor(editor, holder, urls, select.value)); bar.appendChild(select);
         }
-        const form = editor.closest('form');
-        const imageHidden = form?.querySelector('input[name="localLinkPreviewHideImage"]')?.value === '1';
-        holder.classList.toggle('llp-no-image', imageHidden);
-        const imageToggle = button(imageHidden ? 'Bild anzeigen' : 'Bild ausblenden', () => {
-            holder.classList.toggle('llp-no-image'); imageToggle.textContent = holder.classList.contains('llp-no-image') ? 'Bild anzeigen' : 'Bild ausblenden';
-            if (form) hiddenField(form, 'localLinkPreviewHideImage').value = holder.classList.contains('llp-no-image') ? '1' : '0';
-        });
-        bar.append(imageToggle, button('Vorschau entfernen', () => {setSelected(editor, '__disabled__'); renderEditor(editor, holder, urls, selected);})); return bar;
+        if (!video) {
+            const form = editor.closest('form');
+            const imageHidden = form?.querySelector('input[name="localLinkPreviewHideImage"]')?.value === '1';
+            holder.classList.toggle('llp-no-image', imageHidden);
+            const imageToggle = button(imageHidden ? 'Bild anzeigen' : 'Bild ausblenden', () => {
+                holder.classList.toggle('llp-no-image'); imageToggle.textContent = holder.classList.contains('llp-no-image') ? 'Bild anzeigen' : 'Bild ausblenden';
+                if (form) hiddenField(form, 'localLinkPreviewHideImage').value = holder.classList.contains('llp-no-image') ? '1' : '0';
+            });
+            bar.appendChild(imageToggle);
+        }
+        bar.appendChild(button('Vorschau entfernen', () => {setSelected(editor, '__disabled__'); renderEditor(editor, holder, urls, selected);})); return bar;
     }
     async function renderEditor(editor, holder, urls, selected) {
         holder.dataset.url = selected;
@@ -111,7 +129,7 @@
             const data = await load(selected);
             if (!showPreviews || !holder.isConnected || holder._llpVersion !== version || editorDisabled(editor)) return;
             if (data.disabled) {status.textContent = 'Für diesen Link wird keine Vorschau angezeigt.'; return;}
-            status.replaceWith(card(data));
+            holder.replaceChildren(card(data), editorControls(editor, holder, urls, selected, isVerifiedPeerTubeVideo(data)));
         } catch (_) {if (holder._llpVersion === version) status.textContent = 'Keine Vorschau verfügbar. Der Link bleibt erhalten.';}
     }
     function scheduleEditor(editor) {
@@ -182,42 +200,17 @@
         }
         visibility(); if (!hiddenPosts.has(String(id))) fill();
     }
-    function preferenceControl(target) {
-        if (target.previousElementSibling?.classList.contains('llp-preferences')) return;
-        const label = document.createElement('label'), input = document.createElement('input'), text = document.createElement('span');
-        label.className = 'llp-preferences'; input.type = 'checkbox'; input.checked = showPreviews; text.textContent = 'Linkvorschauen anzeigen';
-        input.addEventListener('change', async () => {
-            if (preferenceSaving) {input.checked = showPreviews; return;}
-            preferenceSaving = true; document.querySelectorAll('.llp-preferences input').forEach(node => node.disabled = true);
-            try {
-                const result = await post(config.preferenceEndpoint, {enabled: input.checked ? '1' : '0'}); showPreviews = result.enabled;
-                document.querySelectorAll('.llp-post-previews, .llp-editor-preview').forEach(node => node.remove());
-                document.querySelectorAll('[data-llp-done]').forEach(node => delete node.dataset.llpDone);
-                document.querySelectorAll('.llp-preferences input').forEach(node => node.checked = showPreviews);
-                scan(document);
-            } catch (_) {input.checked = showPreviews; window.alert('Die Einstellung konnte nicht gespeichert werden.');}
-            finally {preferenceSaving = false; document.querySelectorAll('.llp-preferences input').forEach(node => node.disabled = false);}
-        });
-        label.append(input, text); target.before(label);
-    }
     function scan(root) {
         const editors = [], posts = [];
         if (root.matches && isPostEditor(root)) editors.push(root);
         if (root.querySelectorAll) editors.push(...Array.from(root.querySelectorAll('[contenteditable="true"]')).filter(isPostEditor));
         editors.forEach(editor => {
-            const form = editor.closest('form'); if (form) preferenceControl(form);
             if (editor.dataset.llpBound) {scheduleEditor(editor); return;}
             editor.dataset.llpBound = '1'; editor.addEventListener('input', () => scheduleEditor(editor)); editor.addEventListener('paste', () => setTimeout(() => scheduleEditor(editor), 0)); scheduleEditor(editor);
         });
         if (root.matches?.('.wall-entry-content') && isPostContent(root)) posts.push(root);
         if (root.querySelectorAll) posts.push(...Array.from(root.querySelectorAll('.wall-entry-content')).filter(isPostContent));
-        posts.forEach(container => {
-            const stream = container.closest('.wall-stream, .stream, .sg-start-stream') || container.parentElement?.parentElement;
-            if (stream && !stream.querySelector('.llp-preferences')) {
-                const entry = container.closest('.wall-entry') || container; preferenceControl(entry);
-            }
-            enhancePost(container);
-        });
+        posts.forEach(enhancePost);
     }
     scan(document);
     new MutationObserver(mutations => mutations.forEach(mutation => mutation.addedNodes.forEach(node => {if (node.nodeType === 1 && !node.closest('.llp-post-previews, .llp-editor-preview, .llp-preferences')) scan(node);})))

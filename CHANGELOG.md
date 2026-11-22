@@ -1,4 +1,12 @@
+## 0.0.8
+
+- Persönliche Linkvorschau-Einstellung ins Kontomenü verschoben; Schalter aus Stream und Beitragsformular entfernt. Bestehende Auswahl bleibt erhalten, Standard ist eingeschaltet.
+
 # Changelog
+
+## 0.0.9
+
+- Öffentliche Video-Links von `video.selbstsein.events` werden nach serverseitiger PeerTube-API-Prüfung als eingebetteter Player dargestellt. Der Player erhält ausschließlich einen aus der API validierten Einbettungspfad; alle anderen Links bleiben reguläre Linkvorschauen.
 
 ## 0.0.5 – 2026-09-10
 

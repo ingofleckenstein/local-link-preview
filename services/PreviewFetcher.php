@@ -12,6 +12,8 @@ use yii\helpers\FileHelper;
 class PreviewFetcher
 {
     private const MAX_HTML_BYTES = 2097152;
+    private const MAX_JSON_BYTES = 262144;
+    private const PEERTUBE_HOST = 'video.selbstsein.events';
     private const USER_AGENT = 'HumHub LocalLinkPreview/0.0.6';
 
     public function get(string $url): LinkPreview
@@ -59,6 +61,47 @@ class PreviewFetcher
             throw new RuntimeException('Vorschau konnte nicht gespeichert werden.');
         }
         return $model;
+    }
+
+    /**
+     * Resolve a self-hosted PeerTube watch link to its canonical embed URL.
+     *
+     * The returned URL is built from a PeerTube API response, never from a
+     * user-controlled iframe URL. Returning null keeps the regular preview.
+     */
+    public function getPeerTubeEmbed(string $url): ?array
+    {
+        $videoId = $this->peerTubeVideoId($url);
+        if ($videoId === null) {
+            return null;
+        }
+
+        try {
+            [$json, $finalUrl] = $this->request(
+                'https://' . self::PEERTUBE_HOST . '/api/v1/videos/' . rawurlencode($videoId),
+                self::MAX_JSON_BYTES,
+                ['application/json']
+            );
+            $finalHost = strtolower(rtrim((string) parse_url($finalUrl, PHP_URL_HOST), '.'));
+            if ($finalHost !== self::PEERTUBE_HOST) {
+                return null;
+            }
+
+            $video = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
+            $embedPath = is_array($video) ? ($video['embedPath'] ?? null) : null;
+            if (!is_string($embedPath) || !preg_match('~^/videos/embed/[A-Za-z0-9_-]{6,128}$~D', $embedPath)) {
+                return null;
+            }
+
+            $ratio = is_array($video) && is_numeric($video['aspectRatio'] ?? null) ? (float) $video['aspectRatio'] : null;
+            return [
+                'url' => 'https://' . self::PEERTUBE_HOST . $embedPath,
+                'aspectRatio' => $ratio !== null && $ratio >= 0.2 && $ratio <= 4.0 ? $ratio : null,
+            ];
+        } catch (\Throwable $e) {
+            Yii::warning('PeerTube-Videoeinbettung konnte nicht geprüft werden: ' . $e->getMessage(), 'local-link-preview');
+            return null;
+        }
     }
 
     public static function imageDirectory(): string
@@ -164,6 +207,31 @@ class PreviewFetcher
         }
         $this->publicIps($parts['host']);
         return $url;
+    }
+
+    private function peerTubeVideoId(string $url): ?string
+    {
+        $parts = parse_url(trim(html_entity_decode($url, ENT_QUOTES | ENT_HTML5)));
+        if (!$parts
+            || strtolower($parts['scheme'] ?? '') !== 'https'
+            || strtolower(rtrim($parts['host'] ?? '', '.')) !== self::PEERTUBE_HOST
+            || isset($parts['user'])
+            || isset($parts['pass'])
+            || (isset($parts['port']) && (int) $parts['port'] !== 443)
+        ) {
+            return null;
+        }
+
+        $path = rawurldecode($parts['path'] ?? '');
+        foreach ([
+            '~^/w/([A-Za-z0-9_-]{6,128})/?$~D',
+            '~^/videos/(?:watch|embed)/([A-Za-z0-9_-]{6,128})/?$~D',
+        ] as $pattern) {
+            if (preg_match($pattern, $path, $matches)) {
+                return $matches[1];
+            }
+        }
+        return null;
     }
 
     private function parse(string $html, string $baseUrl): array

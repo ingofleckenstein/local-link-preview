@@ -19,4 +19,21 @@ $normalise = new ReflectionMethod($fetcher, 'normaliseUrl');
 foreach (['https://community.example/u/alice/', 'file:///etc/passwd', 'https://user:pass@outside.example/', 'https://outside.example:8080/'] as $url) {
     $rejected = false; try {$normalise->invoke($fetcher, $url);} catch (RuntimeException $e) {$rejected = true;} check($rejected, 'Unsafe/profile URL accepted: ' . $url);
 }
+$peerTubeVideoId = new ReflectionMethod($fetcher, 'peerTubeVideoId');
+foreach ([
+    'https://video.selbstsein.events/w/rZLdoLgBL9mhXVdUnFb5Rr' => 'rZLdoLgBL9mhXVdUnFb5Rr',
+    'https://video.selbstsein.events/videos/watch/d2851be9-3fa2-4b98-8dc7-e30cd286b6e3' => 'd2851be9-3fa2-4b98-8dc7-e30cd286b6e3',
+    'https://video.selbstsein.events/videos/embed/rZLdoLgBL9mhXVdUnFb5Rr' => 'rZLdoLgBL9mhXVdUnFb5Rr',
+] as $url => $expected) {
+    check($peerTubeVideoId->invoke($fetcher, $url) === $expected, 'PeerTube video link not accepted: ' . $url);
+}
+foreach ([
+    'http://video.selbstsein.events/w/rZLdoLgBL9mhXVdUnFb5Rr',
+    'https://video.selbstsein.event/w/rZLdoLgBL9mhXVdUnFb5Rr',
+    'https://video.selbstsein.events.evil.example/w/rZLdoLgBL9mhXVdUnFb5Rr',
+    'https://video.selbstsein.events/about',
+    'https://attacker.example/videos/embed/rZLdoLgBL9mhXVdUnFb5Rr',
+] as $url) {
+    check($peerTubeVideoId->invoke($fetcher, $url) === null, 'Unsafe or non-video URL accepted for embedding: ' . $url);
+}
 echo "PASS: profile filtering, encoded links, metadata/image fallbacks and URL protections\n";
