@@ -16,7 +16,10 @@
 .llp-video {
     width: 100%;
     overflow: hidden;
-    aspect-ratio: var(--llp-video-ratio, 1.7777778);
+    /* PeerTube's embed application is responsive within a 16:9 player.
+       Portrait clips are letterboxed by PeerTube itself, without making the
+       surrounding post as tall as the source video. */
+    aspect-ratio: 16 / 9;
     background: #000;
     border: 1px solid var(--bs-border-color, #dee2e6);
     border-radius: var(--bs-border-radius-lg, .5rem);
